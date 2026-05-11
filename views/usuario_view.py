@@ -91,13 +91,13 @@ def build(page: ft.Page):
         f_papellido = ft.TextField(label="Primer apellido *")
         f_sapellido = ft.TextField(label="Segundo apellido")
         f_correo = ft.TextField(label="Correo *")
-        f_pass = ft.TextField(label="Contraseña *", password=True, can_reveal_password=True)
         f_rol = ft.Dropdown(label="Rol *", options=[ft.dropdown.Option(r) for r in ROLES])
 
+        f_pass = ft.TextField(label="Contraseña *", password=True, can_reveal_password=True)
         f_nivel = ft.TextField(label="Nivel de acceso")
         f_fecha_asig = ft.TextField(label="Fecha asignación (AAAA-MM-DD)")
         f_area = ft.TextField(label="Área responsable")
-        admin_col = ft.Column([f_nivel, f_fecha_asig, f_area], visible=False, spacing=8)
+        admin_col = ft.Column([f_pass, f_nivel, f_fecha_asig, f_area], visible=False, spacing=8)
 
         f_codigo = ft.TextField(label="Código interno")
         f_turno = ft.Dropdown(label="Turno asignado", options=[ft.dropdown.Option(t) for t in TURNOS])
@@ -121,8 +121,11 @@ def build(page: ft.Page):
         def save(dlg):
             if not f_cedula.value.strip() or not f_pnombre.value.strip() \
                or not f_papellido.value.strip() or not f_correo.value.strip() \
-               or not f_pass.value or not f_rol.value:
+               or not f_rol.value:
                 show_error(page, "Complete los campos obligatorios (*).")
+                return
+            if f_rol.value == "Administrador" and not f_pass.value:
+                show_error(page, "La contraseña es obligatoria para administradores.")
                 return
             d = {
                 'cedula': f_cedula.value.strip(),
@@ -157,7 +160,7 @@ def build(page: ft.Page):
             title=ft.Text("Nuevo Usuario", size=18, weight=ft.FontWeight.BOLD),
             content=ft.Column([
                 f_cedula, f_pnombre, f_snombre, f_papellido, f_sapellido,
-                f_correo, f_pass, f_rol,
+                f_correo, f_rol,
                 ft.Divider(),
                 admin_col, op_col, sus_col,
             ], tight=True, scroll=ft.ScrollMode.AUTO, width=450, spacing=8),
@@ -186,6 +189,8 @@ def build(page: ft.Page):
         extra_fields = []
         if rol == 'Administrador' and sub_a:
             extra_fields = [
+                ft.TextField(label="Nueva contraseña (vacío = sin cambio)",
+                             password=True, can_reveal_password=True, data='contrasena'),
                 ft.TextField(label="Nivel de acceso", value=sub_a.get('nivel_acceso', ''),
                              data='nivel_acceso'),
                 ft.TextField(label="Fecha asignación", value=str(sub_a.get('fecha_asignacion', '')),

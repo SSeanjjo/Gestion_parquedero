@@ -33,30 +33,30 @@ INSERT INTO Empresa (nombre, nit, direccion, telefono, ciudad) VALUES
 -- ------------------------------------------------------------
 -- Usuario admin por defecto (DEBE SER EL PRIMERO)
 -- ------------------------------------------------------------
-INSERT INTO Usuario (cedula, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, correo, contrasena)
-VALUES ('1000000000', 'Admin', NULL, 'Sistema', NULL, 'admin@parqueadero.com', 'admin123');
+INSERT INTO Usuario (cedula, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, correo)
+VALUES ('1000000000', 'Admin', NULL, 'Sistema', NULL, 'admin@parqueadero.com');
 
-INSERT INTO Administrador (cedula, nivel_acceso, fecha_asignacion, area_responsable)
-VALUES ('1000000000', 'SUPER', CURDATE(), 'Sistemas');
+INSERT INTO Administrador (cedula, contrasena, nivel_acceso, fecha_asignacion, area_responsable)
+VALUES ('1000000000', 'admin123', 'SUPER', CURDATE(), 'Sistemas');
 
 -- ------------------------------------------------------------
 -- Usuarios adicionales de prueba
 -- ------------------------------------------------------------
-INSERT INTO Usuario (cedula, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, correo, contrasena) VALUES
-  ('1001001001', 'Carlos',   'Andrés',  'García',   'Ruiz',     'carlos.garcia@email.com',  'pass123'),
-  ('1002002002', 'María',    'Isabel',  'López',    'Vargas',   'maria.lopez@email.com',    'pass123'),
-  ('1003003003', 'Juan',     NULL,      'Martínez', 'Peña',     'juan.martinez@email.com',  'pass123'),
-  ('1004004004', 'Luisa',    'Fernanda','Rodríguez','Castro',   'luisa.rodriguez@email.com','pass123'),
-  ('1005005005', 'Pedro',    NULL,      'Sánchez',  NULL,       'pedro.sanchez@email.com',  'pass123'),
-  ('1006006006', 'Ana',      'Milena',  'Torres',   'Mora',     'ana.torres@email.com',     'pass123');
+INSERT INTO Usuario (cedula, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, correo) VALUES
+  ('1001001001', 'Carlos',   'Andrés',  'García',   'Ruiz',     'carlos.garcia@email.com'),
+  ('1002002002', 'María',    'Isabel',  'López',    'Vargas',   'maria.lopez@email.com'),
+  ('1003003003', 'Juan',     NULL,      'Martínez', 'Peña',     'juan.martinez@email.com'),
+  ('1004004004', 'Luisa',    'Fernanda','Rodríguez','Castro',   'luisa.rodriguez@email.com'),
+  ('1005005005', 'Pedro',    NULL,      'Sánchez',  NULL,       'pedro.sanchez@email.com'),
+  ('1006006006', 'Ana',      'Milena',  'Torres',   'Mora',     'ana.torres@email.com');
 
 -- Especializaciones
 INSERT INTO Operador (cedula, fecha_inicio_turno, fecha_final_turno, codigo_interno, turno_asignado, estado) VALUES
   ('1001001001', '2025-01-01 06:00:00', '2025-12-31 14:00:00', 'OP-001', 'Mañana',  'Activo'),
   ('1002002002', '2025-01-01 14:00:00', '2025-12-31 22:00:00', 'OP-002', 'Tarde',   'Activo');
 
-INSERT INTO Administrador (cedula, nivel_acceso, fecha_asignacion, area_responsable) VALUES
-  ('1003003003', 'MEDIO', '2024-03-15', 'Operaciones');
+INSERT INTO Administrador (cedula, contrasena, nivel_acceso, fecha_asignacion, area_responsable) VALUES
+  ('1003003003', 'pass123', 'MEDIO', '2024-03-15', 'Operaciones');
 
 INSERT INTO Suscriptor (cedula, tipo_suscriptor, fecha_registro) VALUES
   ('1004004004', 'Premium',  '2024-06-01'),

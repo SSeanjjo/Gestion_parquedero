@@ -65,10 +65,29 @@ def update(conn, id_vehiculo, data):
 
 def delete(conn, id_vehiculo):
     cursor = conn.cursor()
+
     cursor.execute(
-        "DELETE FROM Vehiculo WHERE id_vehiculo = %s",
+        "SELECT COUNT(*) FROM SesionParqueo WHERE id_vehiculo = %s AND fecha_fin IS NULL",
         (id_vehiculo,)
     )
+    activas = cursor.fetchone()[0]
+    if activas:
+        cursor.close()
+        raise ValueError("No se puede eliminar: el vehículo tiene una sesión de parqueo activa.")
+
+    cursor.execute(
+        "SELECT COUNT(*) FROM SesionParqueo WHERE id_vehiculo = %s",
+        (id_vehiculo,)
+    )
+    total = cursor.fetchone()[0]
+    if total:
+        cursor.close()
+        raise ValueError(
+            f"No se puede eliminar: el vehículo tiene {total} sesión(es) en el historial. "
+            "Elimine primero las sesiones desde el módulo Sesiones."
+        )
+
+    cursor.execute("DELETE FROM Vehiculo WHERE id_vehiculo = %s", (id_vehiculo,))
     conn.commit()
     cursor.close()
 

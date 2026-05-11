@@ -19,7 +19,6 @@ CREATE TABLE IF NOT EXISTS Usuario (
   primer_apellido  VARCHAR(50)  NOT NULL,
   segundo_apellido VARCHAR(50),
   correo           VARCHAR(100) NOT NULL,
-  contrasena       VARCHAR(255) NOT NULL,
   PRIMARY KEY (cedula)
 );
 
@@ -36,6 +35,7 @@ CREATE TABLE IF NOT EXISTS Telefono (
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS Administrador (
   cedula           VARCHAR(20)  NOT NULL,
+  contrasena       VARCHAR(255) NOT NULL,
   nivel_acceso     VARCHAR(50)  NOT NULL,
   fecha_asignacion DATE         NOT NULL,
   area_responsable VARCHAR(100) NOT NULL,

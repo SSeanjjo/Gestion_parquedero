@@ -31,7 +31,10 @@ def get_by_cedula(conn, cedula):
 def login(conn, cedula, contrasena):
     cursor = conn.cursor(dictionary=True)
     cursor.execute(
-        "SELECT * FROM Usuario WHERE cedula = %s AND contrasena = %s",
+        """SELECT u.*, 'Administrador' AS rol
+           FROM Usuario u
+           JOIN Administrador a ON u.cedula = a.cedula
+           WHERE u.cedula = %s AND a.contrasena = %s""",
         (cedula, contrasena)
     )
     result = cursor.fetchone()
@@ -68,11 +71,11 @@ def create_usuario(conn, data):
     cursor.execute(
         """INSERT INTO Usuario
            (cedula, primer_nombre, segundo_nombre, primer_apellido,
-            segundo_apellido, correo, contrasena)
-           VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+            segundo_apellido, correo)
+           VALUES (%s, %s, %s, %s, %s, %s)""",
         (data['cedula'], data['primer_nombre'], data.get('segundo_nombre') or None,
          data['primer_apellido'], data.get('segundo_apellido') or None,
-         data['correo'], data['contrasena'])
+         data['correo'])
     )
     conn.commit()
     cursor.close()
@@ -82,9 +85,10 @@ def create_administrador(conn, cedula, data):
     cursor = conn.cursor()
     cursor.execute(
         """INSERT INTO Administrador
-           (cedula, nivel_acceso, fecha_asignacion, area_responsable)
-           VALUES (%s, %s, %s, %s)""",
-        (cedula, data['nivel_acceso'], data['fecha_asignacion'], data['area_responsable'])
+           (cedula, contrasena, nivel_acceso, fecha_asignacion, area_responsable)
+           VALUES (%s, %s, %s, %s, %s)""",
+        (cedula, data['contrasena'], data['nivel_acceso'],
+         data['fecha_asignacion'], data['area_responsable'])
     )
     conn.commit()
     cursor.close()
@@ -138,11 +142,20 @@ def update_usuario(conn, cedula, data):
 
 def update_administrador(conn, cedula, data):
     cursor = conn.cursor()
-    cursor.execute(
-        """UPDATE Administrador SET nivel_acceso=%s, fecha_asignacion=%s, area_responsable=%s
-           WHERE cedula=%s""",
-        (data['nivel_acceso'], data['fecha_asignacion'], data['area_responsable'], cedula)
-    )
+    if data.get('contrasena'):
+        cursor.execute(
+            """UPDATE Administrador SET contrasena=%s, nivel_acceso=%s,
+               fecha_asignacion=%s, area_responsable=%s WHERE cedula=%s""",
+            (data['contrasena'], data['nivel_acceso'],
+             data['fecha_asignacion'], data['area_responsable'], cedula)
+        )
+    else:
+        cursor.execute(
+            """UPDATE Administrador SET nivel_acceso=%s,
+               fecha_asignacion=%s, area_responsable=%s WHERE cedula=%s""",
+            (data['nivel_acceso'], data['fecha_asignacion'],
+             data['area_responsable'], cedula)
+        )
     conn.commit()
     cursor.close()
 
