@@ -1,7 +1,7 @@
 import flet as ft
 from views import (
     usuario_view, vehiculo_view, sesion_view,
-    suscripcion_view, empresa_view,
+    suscripcion_view, empresa_view, factura_view,
 )
 
 MODULES = [
@@ -10,6 +10,7 @@ MODULES = [
     ("Suscripciones", "suscripciones", ft.Icons.CARD_MEMBERSHIP_OUTLINED),
     ("Empresas",      "empresas",      ft.Icons.BUSINESS_OUTLINED),
     ("Sesiones",      "sesiones",      ft.Icons.TIMER_OUTLINED),
+    ("Facturas",      "facturas",      ft.Icons.RECEIPT_LONG_OUTLINED),
 ]
 
 VIEW_BUILDERS = {
@@ -18,6 +19,7 @@ VIEW_BUILDERS = {
     "suscripciones": suscripcion_view.build,
     "empresas":      empresa_view.build,
     "sesiones":      sesion_view.build,
+    "facturas":      factura_view.build,
 }
 
 

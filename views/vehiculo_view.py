@@ -109,13 +109,25 @@ def build(page: ft.Page):
         return u_opts, t_opts, e_opts
 
     def open_create():
-        # Campo de búsqueda de propietario por nombre o cédula
-        search_owner = ft.TextField(label="Buscar propietario por nombre o cédula", width=420)
-        owner_dd = ft.Dropdown(label="Propietario *", options=[], width=420)
-        search_btn = ft.ElevatedButton("Buscar", icon=ft.Icons.SEARCH,
-                                        on_click=lambda e: _search_owner(search_owner.value, owner_dd))
+        _, usuarios = u_ctrl.get_all_for_dropdown()
+        all_u_opts = [ft.dropdown.Option(key=u['cedula'],
+                                         text=f"{u['nombre_completo']} ({u['cedula']})") for u in (usuarios or [])]
 
-        _, t_opts_list, e_opts_list = _get_opts()
+        search_owner = ft.TextField(
+            label="Buscar propietario por nombre o cédula...",
+            prefix_icon=ft.Icons.SEARCH,
+            width=420,
+        )
+        owner_dd = ft.Dropdown(label="Seleccione propietario *", options=all_u_opts, width=420)
+
+        def _filter_owner(e):
+            term = search_owner.value.strip().lower()
+            owner_dd.options = [o for o in all_u_opts if term in o.text.lower()] if term else all_u_opts
+            owner_dd.value = None
+            page.update()
+
+        search_owner.on_change = _filter_owner
+
         _, tipos = t_ctrl.get_tipos_vehiculo()
         t_opts = [ft.dropdown.Option(key=str(t['id_tipo_vehiculo']), text=t['nombre']) for t in (tipos or [])]
 
@@ -151,9 +163,7 @@ def build(page: ft.Page):
             modal=True,
             title=ft.Text("Nuevo Vehículo", size=18, weight=ft.FontWeight.BOLD),
             content=ft.Column([
-                ft.Text("Buscar propietario:", weight=ft.FontWeight.BOLD, size=13),
-                ft.Row([search_owner, search_btn], spacing=8),
-                owner_dd,
+                search_owner, owner_dd,
                 ft.Divider(),
                 f_placa, f_color, f_marca, f_modelo, f_tipo, f_empresa,
             ], tight=True, scroll=ft.ScrollMode.AUTO, width=460, spacing=8),
@@ -164,19 +174,6 @@ def build(page: ft.Page):
             actions_alignment=ft.MainAxisAlignment.END,
         )
         page.show_dialog(dlg)
-
-    def _search_owner(term, owner_dd):
-        if not term.strip():
-            show_error(page, "Ingrese un término de búsqueda."); return
-        ok, result = u_ctrl.search_by_cedula_or_name(term.strip())
-        if ok:
-            owner_dd.options = [
-                ft.dropdown.Option(key=u['cedula'],
-                                   text=f"{u['nombre_completo']} ({u['cedula']})") for u in result
-            ]
-            page.update()
-        else:
-            show_error(page, result)
 
     def open_edit(row):
         u_opts, t_opts, e_opts = _get_opts()

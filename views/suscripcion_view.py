@@ -111,19 +111,46 @@ def build(page: ft.Page):
     def open_create():
         _, vehiculos = ctrl.get_vehiculos()
         _, suscriptores = u_ctrl.get_suscriptores_for_dropdown()
-        v_opts = [ft.dropdown.Option(key=str(v['id_vehiculo']),
-                                     text=f"{v['placa']} ({v['tipo_vehiculo']})") for v in (vehiculos or [])]
-        s_opts = [ft.dropdown.Option(key=u['cedula'],
-                                     text=f"{u['nombre_completo']} ({u['cedula']})") for u in (suscriptores or [])]
+        all_v_opts = [ft.dropdown.Option(key=str(v['id_vehiculo']),
+                                         text=f"{v['placa']} ({v['tipo_vehiculo']})") for v in (vehiculos or [])]
+        all_s_opts = [ft.dropdown.Option(key=u['cedula'],
+                                         text=f"{u['nombre_completo']} ({u['cedula']})") for u in (suscriptores or [])]
 
-        f_vehiculo = ft.Dropdown(label="Vehículo *", options=v_opts, width=420)
-        f_suscriptor = ft.Dropdown(label="Suscriptor *", options=s_opts, width=420)
+        search_v = ft.TextField(
+            label="Buscar vehículo por placa o tipo...",
+            prefix_icon=ft.Icons.SEARCH,
+            width=420,
+        )
+        f_vehiculo = ft.Dropdown(label="Seleccione vehículo *", options=all_v_opts, width=420)
+
+        search_s = ft.TextField(
+            label="Buscar suscriptor por nombre o cédula...",
+            prefix_icon=ft.Icons.SEARCH,
+            width=420,
+        )
+        f_suscriptor = ft.Dropdown(label="Seleccione suscriptor *", options=all_s_opts, width=420)
+
         f_inicio = ft.TextField(label="Fecha inicio * (AAAA-MM-DD)")
         f_final = ft.TextField(label="Fecha final * (AAAA-MM-DD)")
         f_estado = ft.Dropdown(label="Estado *", options=[ft.dropdown.Option(s) for s in ESTADOS],
                                value="Activa")
         f_h_ini = ft.TextField(label="Horario permitido inicio (HH:MM:SS)", hint_text="Ej: 06:00:00")
         f_h_fin = ft.TextField(label="Horario permitido fin (HH:MM:SS)", hint_text="Ej: 22:00:00")
+
+        def _filter_v(e):
+            term = search_v.value.strip().lower()
+            f_vehiculo.options = [o for o in all_v_opts if term in o.text.lower()] if term else all_v_opts
+            f_vehiculo.value = None
+            page.update()
+
+        def _filter_s(e):
+            term = search_s.value.strip().lower()
+            f_suscriptor.options = [o for o in all_s_opts if term in o.text.lower()] if term else all_s_opts
+            f_suscriptor.value = None
+            page.update()
+
+        search_v.on_change = _filter_v
+        search_s.on_change = _filter_s
 
         def save(dlg):
             if not f_vehiculo.value or not f_suscriptor.value \
@@ -145,9 +172,11 @@ def build(page: ft.Page):
         dlg = ft.AlertDialog(
             modal=True,
             title=ft.Text("Nueva Suscripción", size=18, weight=ft.FontWeight.BOLD),
-            content=ft.Column([f_vehiculo, f_suscriptor, f_inicio, f_final,
-                               f_estado, f_h_ini, f_h_fin],
-                              tight=True, scroll=ft.ScrollMode.AUTO, width=450, spacing=8),
+            content=ft.Column([
+                search_v, f_vehiculo,
+                search_s, f_suscriptor,
+                f_inicio, f_final, f_estado, f_h_ini, f_h_fin,
+            ], tight=True, scroll=ft.ScrollMode.AUTO, width=450, spacing=8),
             actions=[
                 ft.TextButton("Cancelar", on_click=lambda e: page.pop_dialog()),
                 ft.ElevatedButton("Guardar", icon=ft.Icons.SAVE_OUTLINED, on_click=lambda e: save(dlg)),

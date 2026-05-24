@@ -108,16 +108,31 @@ def build(page: ft.Page):
 
     def open_create():
         ok_v, vehiculos = v_ctrl.get_all_for_dropdown()
-        v_opts = [ft.dropdown.Option(
+        all_v_opts = [ft.dropdown.Option(
             key=str(v['id_vehiculo']),
             text=f"{v['placa']} ({v['tipo_vehiculo']})")
             for v in (vehiculos or [])]
 
-        f_vehiculo = ft.Dropdown(label="Vehículo *", options=v_opts, width=440)
+        search_v = ft.TextField(
+            label="Buscar vehículo por placa o tipo...",
+            prefix_icon=ft.Icons.SEARCH,
+            width=440,
+        )
+        f_vehiculo = ft.Dropdown(label="Seleccione vehículo *", options=all_v_opts, width=440)
         f_espacio = ft.Dropdown(label="Espacio disponible *", options=[], width=440)
         f_fecha = ft.TextField(label="Fecha y hora inicio (AAAA-MM-DD HH:MM:SS)",
                                value=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         info_txt = ft.Text("", color=ft.Colors.ORANGE_700, size=12, italic=True)
+
+        def _filter_vehiculo(e):
+            term = search_v.value.strip().lower()
+            f_vehiculo.options = [o for o in all_v_opts if term in o.text.lower()] if term else all_v_opts
+            f_vehiculo.value = None
+            f_espacio.options = []
+            info_txt.value = ""
+            page.update()
+
+        search_v.on_change = _filter_vehiculo
 
         def on_vehiculo_change(e):
             if not f_vehiculo.value:
@@ -157,7 +172,7 @@ def build(page: ft.Page):
             content=ft.Column([
                 ft.Text("Los espacios se filtran automáticamente según el tipo de vehículo.",
                         size=11, italic=True, color=ft.Colors.SECONDARY),
-                f_vehiculo, info_txt, f_espacio, f_fecha,
+                search_v, f_vehiculo, info_txt, f_espacio, f_fecha,
             ], tight=True, scroll=ft.ScrollMode.AUTO, width=460, spacing=8),
             actions=[
                 ft.TextButton("Cancelar", on_click=lambda e: page.pop_dialog()),
@@ -275,7 +290,7 @@ def build(page: ft.Page):
             page.pop_dialog()
             if not ok:
                 show_error(page, data_r); return
-            hdrs = ["Zona", "Piso", "Tipo Espacio", "Espacio #", "Total Sesiones", "Prom. Horas"]
+            hdrs = ["Zona", "Piso", "Tipo Espacio", "Espacio #", "Total Sesiones", "Prom. Horas/Sesión"]
             rows = [[r['zona'], r['piso'], r['tipo_espacio'], r['espacio'],
                      r['total_sesiones'], r['promedio_horas']] for r in data_r]
             _show_report_table("Zonas y Espacios con Mayor Ocupación", hdrs, rows)

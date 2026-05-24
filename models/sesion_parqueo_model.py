@@ -1,3 +1,4 @@
+import math
 from datetime import datetime
 
 
@@ -121,8 +122,14 @@ def close_session(conn, id_sesion, fecha_fin):
     if isinstance(fecha_inicio_dt, str):
         fecha_inicio_dt = datetime.strptime(fecha_inicio_dt, "%Y-%m-%d %H:%M:%S")
 
-    duracion_horas = (fecha_fin_dt - fecha_inicio_dt).total_seconds() / 3600
-    duracion_horas = round(duracion_horas, 2)
+    duracion_segundos = (fecha_fin_dt - fecha_inicio_dt).total_seconds()
+    duracion_horas_real = round(duracion_segundos / 3600, 2)
+    # Menos de 5 minutos no se cobra; de lo contrario se redondea al entero superior
+    MINUTOS_GRACIA = 5
+    if duracion_segundos < MINUTOS_GRACIA * 60:
+        duracion_horas_cobro = 0
+    else:
+        duracion_horas_cobro = math.ceil(duracion_horas_real)
     tarifa_base = float(sesion['valor_hora'])
 
     # 1. Verificar suscripcion activa
@@ -140,6 +147,9 @@ def close_session(conn, id_sesion, fecha_fin):
     if tiene_sub:
         valor_total = 0.0
         tipo_cobro = 'Suscripcion activa'
+    elif duracion_horas_cobro == 0:
+        valor_total = 0.0
+        tipo_cobro = 'Sin cargo (< 5 min)'
     else:
         # 2. Verificar convenio activo de la empresa del vehículo
         if sesion['id_empresa']:
@@ -151,17 +161,17 @@ def close_session(conn, id_sesion, fecha_fin):
             conv = cursor.fetchone()
             if conv:
                 descuento_pct = float(conv['porcentaje_descuento'])
-                valor_total = round(duracion_horas * tarifa_base * (1 - descuento_pct / 100), 2)
+                valor_total = round(duracion_horas_cobro * tarifa_base * (1 - descuento_pct / 100), 2)
                 tipo_cobro = f'Convenio ({descuento_pct}% desc.)'
             else:
-                valor_total = round(duracion_horas * tarifa_base, 2)
+                valor_total = round(duracion_horas_cobro * tarifa_base, 2)
         else:
-            valor_total = round(duracion_horas * tarifa_base, 2)
+            valor_total = round(duracion_horas_cobro * tarifa_base, 2)
 
-    # Actualizar sesion
+    # Actualizar sesion (tiempo real, no redondeado)
     cursor.execute(
         "UPDATE SesionParqueo SET fecha_fin=%s, tiempo=%s WHERE id_sesion=%s",
-        (fecha_fin_dt, duracion_horas, id_sesion)
+        (fecha_fin_dt, duracion_horas_real, id_sesion)
     )
 
     # Liberar espacio
@@ -170,13 +180,13 @@ def close_session(conn, id_sesion, fecha_fin):
         (sesion['id_espacio'],)
     )
 
-    # Crear factura
+    # Crear factura (tiempo cobrado = horas enteras redondeadas arriba)
     cursor.execute(
         """INSERT INTO Factura
            (fecha_ingreso, fecha_salida, tiempo, valor_total, estado_pago,
             descuento_aplicado, tipo_cobro, id_sesion, id_tarifa)
            VALUES (%s, %s, %s, %s, 'Pendiente', %s, %s, %s, %s)""",
-        (sesion['fecha_inicio'], fecha_fin_dt, duracion_horas, valor_total,
+        (sesion['fecha_inicio'], fecha_fin_dt, duracion_horas_cobro, valor_total,
          descuento_pct, tipo_cobro, id_sesion, sesion['id_tarifa'])
     )
 
