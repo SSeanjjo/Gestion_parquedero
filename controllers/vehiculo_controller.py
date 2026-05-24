@@ -2,10 +2,10 @@ from config.db import get_connection
 from models import vehiculo_model
 
 
-def get_all():
+def get_all(con_suscripcion=None, placa=None):
     try:
         conn = get_connection()
-        data = vehiculo_model.get_all(conn)
+        data = vehiculo_model.get_all_filtered(conn, con_suscripcion, placa)
         conn.close()
         return True, data
     except Exception as e:

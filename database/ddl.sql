@@ -1,6 +1,5 @@
 -- ============================================================
--- GestionParqueadero - DDL
--- Crear la base de datos y todas las tablas en orden correcto
+-- GestionParqueadero - DDL v2.0
 -- ============================================================
 
 CREATE DATABASE IF NOT EXISTS gestion_parqueadero
@@ -22,7 +21,6 @@ CREATE TABLE IF NOT EXISTS Usuario (
   PRIMARY KEY (cedula)
 );
 
--- Atributo multivaluado de Usuario
 CREATE TABLE IF NOT EXISTS Telefono (
   cedula_usuario VARCHAR(20) NOT NULL,
   telefono       VARCHAR(20) NOT NULL,
@@ -31,48 +29,74 @@ CREATE TABLE IF NOT EXISTS Telefono (
 );
 
 -- ------------------------------------------------------------
--- Especializaciones de Usuario (disjuntas)
+-- Especializaciones (disjuntas)
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS Administrador (
   cedula           VARCHAR(20)  NOT NULL,
-  contrasena       VARCHAR(255) NOT NULL,
-  nivel_acceso     VARCHAR(50)  NOT NULL,
+  contrasenia      VARCHAR(255) NOT NULL,
   fecha_asignacion DATE         NOT NULL,
-  area_responsable VARCHAR(100) NOT NULL,
+  codigo_interno   VARCHAR(20),
   PRIMARY KEY (cedula),
   FOREIGN KEY (cedula) REFERENCES Usuario(cedula) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS Operador (
-  cedula              VARCHAR(20) NOT NULL,
-  fecha_inicio_turno  DATETIME,
-  fecha_final_turno   DATETIME,
-  codigo_interno      VARCHAR(50),
-  turno_asignado      VARCHAR(50),
-  estado              VARCHAR(20),
+  cedula         VARCHAR(20) NOT NULL,
+  codigo_interno VARCHAR(50),
+  estado         VARCHAR(20) DEFAULT 'Activo',
   PRIMARY KEY (cedula),
   FOREIGN KEY (cedula) REFERENCES Usuario(cedula) ON DELETE CASCADE
+);
+
+-- Turnos de operador (tabla separada, reemplaza columnas en Operador)
+CREATE TABLE IF NOT EXISTS Turno (
+  id_turno           INT         NOT NULL AUTO_INCREMENT,
+  id_operador        VARCHAR(20) NOT NULL,
+  fecha_inicio_turno DATE        NOT NULL,
+  fecha_final_turno  DATE        NOT NULL,
+  PRIMARY KEY (id_turno),
+  FOREIGN KEY (id_operador) REFERENCES Operador(cedula) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS Suscriptor (
-  cedula           VARCHAR(20) NOT NULL,
-  tipo_suscriptor  VARCHAR(50),
-  fecha_registro   DATE,
+  cedula         VARCHAR(20) NOT NULL,
+  fecha_registro DATE,
   PRIMARY KEY (cedula),
   FOREIGN KEY (cedula) REFERENCES Usuario(cedula) ON DELETE CASCADE
 );
 
 -- ------------------------------------------------------------
--- Tipo de vehículo
+-- Tipo de vehículo y Empresa (sin dependencias)
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS TipoVehiculo (
-  id_tipo_vehiculo INT          NOT NULL AUTO_INCREMENT,
-  nombre           VARCHAR(50)  NOT NULL,
+  id_tipo_vehiculo INT         NOT NULL AUTO_INCREMENT,
+  nombre           VARCHAR(50) NOT NULL,
   PRIMARY KEY (id_tipo_vehiculo)
 );
 
+CREATE TABLE IF NOT EXISTS Empresa (
+  id_empresa      INT          NOT NULL AUTO_INCREMENT,
+  nombre          VARCHAR(100) NOT NULL,
+  nit             VARCHAR(20),
+  direccion       VARCHAR(150),
+  telefono        VARCHAR(20),
+  ciudad          VARCHAR(50),
+  estado_convenio VARCHAR(20)  DEFAULT 'activo',
+  PRIMARY KEY (id_empresa)
+);
+
+-- Convenio vinculado a Empresa (descuento para sesiones sin suscripcion)
+CREATE TABLE IF NOT EXISTS Convenio (
+  id_convenio          INT           NOT NULL AUTO_INCREMENT,
+  id_empresa           INT           NOT NULL,
+  estado               VARCHAR(20)   NOT NULL DEFAULT 'activo',
+  porcentaje_descuento DECIMAL(5,2)  NOT NULL DEFAULT 0.00,
+  PRIMARY KEY (id_convenio),
+  FOREIGN KEY (id_empresa) REFERENCES Empresa(id_empresa) ON DELETE CASCADE
+);
+
 -- ------------------------------------------------------------
--- Vehículo
+-- Vehículo (puede pertenecer a empresa para convenio)
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS Vehiculo (
   id_vehiculo      INT         NOT NULL AUTO_INCREMENT,
@@ -82,41 +106,35 @@ CREATE TABLE IF NOT EXISTS Vehiculo (
   modelo           VARCHAR(50),
   cedula_usuario   VARCHAR(20) NOT NULL,
   id_tipo_vehiculo INT         NOT NULL,
+  id_empresa       INT,
   PRIMARY KEY (id_vehiculo),
-  FOREIGN KEY (cedula_usuario)   REFERENCES Usuario(cedula)         ON DELETE CASCADE,
-  FOREIGN KEY (id_tipo_vehiculo) REFERENCES TipoVehiculo(id_tipo_vehiculo)
+  FOREIGN KEY (cedula_usuario)   REFERENCES Usuario(cedula)              ON DELETE CASCADE,
+  FOREIGN KEY (id_tipo_vehiculo) REFERENCES TipoVehiculo(id_tipo_vehiculo),
+  FOREIGN KEY (id_empresa)       REFERENCES Empresa(id_empresa)          ON DELETE SET NULL
 );
 
 -- ------------------------------------------------------------
--- Empresa (convenio para suscripciones)
--- ------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS Empresa (
-  id_empresa INT          NOT NULL AUTO_INCREMENT,
-  nombre     VARCHAR(100) NOT NULL,
-  nit        VARCHAR(20),
-  direccion  VARCHAR(150),
-  telefono   VARCHAR(20),
-  ciudad     VARCHAR(50),
-  PRIMARY KEY (id_empresa)
-);
-
--- ------------------------------------------------------------
--- Suscripcion (un vehículo → una suscripción máximo)
+-- Suscripcion (sin descuento, sin id_empresa, permite multiples por vehiculo)
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS Suscripcion (
-  id_suscripcion         INT            NOT NULL AUTO_INCREMENT,
-  fecha_inicio           DATE           NOT NULL,
-  fecha_final            DATE           NOT NULL,
-  estado                 VARCHAR(20)    NOT NULL DEFAULT 'Activa',
-  descuento              DECIMAL(5,2)   DEFAULT 0.00,
+  id_suscripcion           INT         NOT NULL AUTO_INCREMENT,
+  fecha_inicio             DATE        NOT NULL,
+  fecha_final              DATE        NOT NULL,
+  estado                   VARCHAR(20) NOT NULL DEFAULT 'Activa',
   horario_permitido_inicio TIME,
   horario_permitido_final  TIME,
-  id_vehiculo            INT            NOT NULL,
-  id_empresa             INT,
+  id_vehiculo              INT         NOT NULL,
   PRIMARY KEY (id_suscripcion),
-  UNIQUE KEY uk_suscripcion_vehiculo (id_vehiculo),
-  FOREIGN KEY (id_vehiculo) REFERENCES Vehiculo(id_vehiculo) ON DELETE CASCADE,
-  FOREIGN KEY (id_empresa)  REFERENCES Empresa(id_empresa)   ON DELETE SET NULL
+  FOREIGN KEY (id_vehiculo) REFERENCES Vehiculo(id_vehiculo) ON DELETE CASCADE
+);
+
+-- Tabla intermedia: suscriptor -> suscripciones (para GROUP BY)
+CREATE TABLE IF NOT EXISTS SuscriptorSuscripcion (
+  id_suscriptor  VARCHAR(20) NOT NULL,
+  id_suscripcion INT         NOT NULL,
+  PRIMARY KEY (id_suscriptor, id_suscripcion),
+  FOREIGN KEY (id_suscriptor)  REFERENCES Suscriptor(cedula)          ON DELETE CASCADE,
+  FOREIGN KEY (id_suscripcion) REFERENCES Suscripcion(id_suscripcion) ON DELETE CASCADE
 );
 
 -- ------------------------------------------------------------
@@ -142,7 +160,7 @@ CREATE TABLE IF NOT EXISTS EspacioParqueo (
 );
 
 -- ------------------------------------------------------------
--- Tarifa por tipo de vehículo (1:1)
+-- Tarifa (1:1 con TipoVehiculo)
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS Tarifa (
   id_tarifa        INT            NOT NULL AUTO_INCREMENT,
@@ -155,32 +173,34 @@ CREATE TABLE IF NOT EXISTS Tarifa (
 );
 
 -- ------------------------------------------------------------
--- Sesión de parqueo
+-- Sesion de parqueo
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS SesionParqueo (
-  id_sesion    INT            NOT NULL AUTO_INCREMENT,
-  fecha_inicio DATETIME       NOT NULL,
+  id_sesion    INT           NOT NULL AUTO_INCREMENT,
+  fecha_inicio DATETIME      NOT NULL,
   fecha_fin    DATETIME,
   tiempo       DECIMAL(10,2),
-  id_vehiculo  INT            NOT NULL,
-  id_espacio   INT            NOT NULL,
+  id_vehiculo  INT           NOT NULL,
+  id_espacio   INT           NOT NULL,
   PRIMARY KEY (id_sesion),
   FOREIGN KEY (id_vehiculo) REFERENCES Vehiculo(id_vehiculo),
   FOREIGN KEY (id_espacio)  REFERENCES EspacioParqueo(id_espacio)
 );
 
 -- ------------------------------------------------------------
--- Factura (generada al cerrar la sesión)
+-- Factura (generada al cerrar sesion)
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS Factura (
-  id_factura   INT            NOT NULL AUTO_INCREMENT,
-  fecha_ingreso DATETIME      NOT NULL,
-  fecha_salida  DATETIME      NOT NULL,
-  tiempo        DECIMAL(10,2) NOT NULL,
-  valor_total   DECIMAL(10,2) NOT NULL,
-  estado_pago   VARCHAR(20)   NOT NULL DEFAULT 'Pendiente',
-  id_sesion     INT           NOT NULL,
-  id_tarifa     INT           NOT NULL,
+  id_factura    INT            NOT NULL AUTO_INCREMENT,
+  fecha_ingreso DATETIME       NOT NULL,
+  fecha_salida  DATETIME       NOT NULL,
+  tiempo        DECIMAL(10,2)  NOT NULL,
+  valor_total   DECIMAL(10,2)  NOT NULL,
+  estado_pago   VARCHAR(20)    NOT NULL DEFAULT 'Pendiente',
+  descuento_aplicado DECIMAL(5,2) DEFAULT 0.00,
+  tipo_cobro    VARCHAR(30)    DEFAULT 'Tarifa completa',
+  id_sesion     INT            NOT NULL,
+  id_tarifa     INT            NOT NULL,
   PRIMARY KEY (id_factura),
   UNIQUE KEY uk_factura_sesion (id_sesion),
   FOREIGN KEY (id_sesion)  REFERENCES SesionParqueo(id_sesion) ON DELETE CASCADE,
@@ -188,22 +208,22 @@ CREATE TABLE IF NOT EXISTS Factura (
 );
 
 -- ------------------------------------------------------------
--- Multa (asociada a una sesión)
+-- Multa
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS Multa (
-  id_multa  INT            NOT NULL AUTO_INCREMENT,
-  fecha     DATE           NOT NULL,
+  id_multa  INT           NOT NULL AUTO_INCREMENT,
+  fecha     DATE          NOT NULL,
   motivo    VARCHAR(200),
-  valor     DECIMAL(10,2)  NOT NULL,
-  estado    VARCHAR(20)    NOT NULL DEFAULT 'Pendiente',
-  id_sesion INT            NOT NULL,
+  valor     DECIMAL(10,2) NOT NULL,
+  estado    VARCHAR(20)   NOT NULL DEFAULT 'Pendiente',
+  id_sesion INT           NOT NULL,
   PRIMARY KEY (id_multa),
   UNIQUE KEY uk_multa_sesion (id_sesion),
   FOREIGN KEY (id_sesion) REFERENCES SesionParqueo(id_sesion) ON DELETE CASCADE
 );
 
 -- ------------------------------------------------------------
--- Notificación
+-- Notificacion
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS Notificacion (
   id_notificacion   INT         NOT NULL AUTO_INCREMENT,

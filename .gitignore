@@ -1,0 +1,35 @@
+# Credenciales y configuración local
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Entornos virtuales
+venv/
+env/
+.venv/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Reportes exportados (se generan en tiempo de ejecución)
+*.csv
+
+# Notas internas / planificación
+mejoras.md
+
+# Claude Code
+.claude/

@@ -2,14 +2,12 @@ from config.db import get_connection
 from models import usuario_model
 
 
-def login(cedula, contrasena):
+def login(cedula, contrasenia):
     try:
         conn = get_connection()
-        user = usuario_model.login(conn, cedula, contrasena)
+        user = usuario_model.login(conn, cedula, contrasenia)
         conn.close()
-        if user:
-            return True, user
-        return False, "Cédula o contraseña incorrecta."
+        return (True, user) if user else (False, "Cédula o contraseña incorrecta.")
     except Exception as e:
         return False, str(e)
 
@@ -37,10 +35,30 @@ def get_by_cedula(cedula):
         return False, str(e)
 
 
+def search_by_cedula_or_name(term):
+    try:
+        conn = get_connection()
+        data = usuario_model.get_by_cedula_or_name(conn, term)
+        conn.close()
+        return True, data
+    except Exception as e:
+        return False, str(e)
+
+
 def get_all_for_dropdown():
     try:
         conn = get_connection()
         data = usuario_model.get_all_for_dropdown(conn)
+        conn.close()
+        return True, data
+    except Exception as e:
+        return False, str(e)
+
+
+def get_suscriptores_for_dropdown():
+    try:
+        conn = get_connection()
+        data = usuario_model.get_suscriptores_for_dropdown(conn)
         conn.close()
         return True, data
     except Exception as e:
@@ -93,5 +111,46 @@ def delete(cedula):
         usuario_model.delete_usuario(conn, cedula)
         conn.close()
         return True, "Usuario eliminado exitosamente."
+    except Exception as e:
+        return False, str(e)
+
+
+# Reportes
+def reporte_multas_por_estado():
+    try:
+        conn = get_connection()
+        data = usuario_model.reporte_multas_por_estado(conn)
+        conn.close()
+        return True, data
+    except Exception as e:
+        return False, str(e)
+
+
+def reporte_usuarios_mas_suscripciones(fecha_inicio=None, fecha_fin=None):
+    try:
+        conn = get_connection()
+        data = usuario_model.reporte_usuarios_mas_suscripciones(conn, fecha_inicio, fecha_fin)
+        conn.close()
+        return True, data
+    except Exception as e:
+        return False, str(e)
+
+
+def reporte_horas_operadores(fecha_inicio, fecha_fin):
+    try:
+        conn = get_connection()
+        data = usuario_model.reporte_horas_operadores(conn, fecha_inicio, fecha_fin)
+        conn.close()
+        return True, data
+    except Exception as e:
+        return False, str(e)
+
+
+def reporte_usuarios_mayor_ganancia():
+    try:
+        conn = get_connection()
+        data = usuario_model.reporte_usuarios_mayor_ganancia(conn)
+        conn.close()
+        return True, data
     except Exception as e:
         return False, str(e)
